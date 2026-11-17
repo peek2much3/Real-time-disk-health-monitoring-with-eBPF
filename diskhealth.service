@@ -1,0 +1,47 @@
+[Unit]
+Description=eBPF realtime disk health monitor
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/diskhealth -interval 5s
+Restart=on-failure
+RestartSec=5
+
+# Least privilege: only what loading tracepoint programs requires (kernel >= 5.8).
+CapabilityBoundingSet=CAP_BPF CAP_PERFMON
+AmbientCapabilities=CAP_BPF CAP_PERFMON
+NoNewPrivileges=yes
+
+# Filesystem / kernel isolation
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+
+# No network needed: output goes to journald
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+
+# Syscalls: normal service set plus bpf/perf_event_open
+SystemCallFilter=@system-service
+SystemCallFilter=bpf perf_event_open
+SystemCallArchitectures=native
+
+# Resource limits so a bug can never hurt the host
+MemoryMax=128M
+TasksMax=32
+CPUQuota=10%
+
+[Install]
+WantedBy=multi-user.target
